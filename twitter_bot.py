@@ -1,48 +1,63 @@
 import tweepy
 import requests
-from bs4 import BeautifulSoup
-from datetime import datetime
-import os
+import datetime
+import schedule
+import time
+
+# Twitter API credentials
+API_KEY = "YOUR_API_KEY"
+API_SECRET_KEY = "YOUR_API_SECRET_KEY"
+ACCESS_TOKEN = "YOUR_ACCESS_TOKEN"
+ACCESS_TOKEN_SECRET = "YOUR_ACCESS_TOKEN_SECRET"
 
 # Authenticate with Twitter API
-client = tweepy.Client(
-    consumer_key=os.getenv('API_KEY'),
-    consumer_secret=os.getenv('API_SECRET_KEY'),
-    access_token=os.getenv('ACCESS_TOKEN'),
-    access_token_secret=os.getenv('ACCESS_TOKEN_SECRET')
-)
+def twitter_authenticate():
+    auth = tweepy.OAuthHandler(API_KEY, API_SECRET_KEY)
+    auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+    return tweepy.API(auth)
 
-# Function to scrape top celebrity birthdays
-def get_top_birthdays():
-    # Automatically fetch today's date and construct the URL
-    today = datetime.now().strftime("%B-%d").lower()  # Example: "march-21"
-    url = f"https://www.famousbirthdays.com/{today}.html"
-    
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
+# Fetch celebrity birthdays
+def fetch_celebrity_birthdays():
+    today_date = datetime.datetime.now().strftime("%Y-%m-%d")
+    # Example API/website for fetching birthdays (replace with your source)
+    url = f"https://example.com/api/birthdays?date={today_date}"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Check for HTTP request errors
+        data = response.json()  # Assuming the API returns JSON
+        return data.get("celebrities", [])  # Adjust to your API response format
+    except Exception as e:
+        print(f"Error fetching birthdays: {e}")
+        return []
 
-    # Extract top 5 birthdays (adjust based on the site's structure)
-    birthdays = []
-    for item in soup.select('.name')[:5]:  # Adjust the selector as needed
-        birthdays.append(item.text.strip())
-    
-    return birthdays
-
-# Function to create and post a tweet
-def tweet_birthdays():
-    birthdays = get_top_birthdays()
-    if birthdays:
-        # Format the tweet
-        tweet = "Today's Top 5 Celebrity Birthdays:\n" + "\n".join(birthdays)
-        try:
-            # Post the tweet
-            client.create_tweet(text=tweet)
-            print("Tweet posted successfully!")
-        except Exception as e:
-            print("Error while tweeting:", e)
-    else:
+# Compose and send the tweet
+def send_birthday_tweet(api):
+    birthdays = fetch_celebrity_birthdays()
+    if not birthdays:
         print("No birthdays found for today.")
+        return
 
-# Trigger the tweet function
-if __name__ == "__main__":
-    tweet_birthdays()
+    # Create a tweet
+    tweet = "🎉 Today's Top Celebrity Birthdays 🎂\n\n"
+    for celeb in birthdays[:5]:  # Take the top 5 celebrities
+        tweet += f"{celeb['name']} ({celeb['age']} years old)\n"
+
+    tweet += "\n#CelebrityBirthdays #DailyUpdates"
+    try:
+        api.update_status(tweet)
+        print("Tweet posted successfully!")
+    except Exception as e:
+        print(f"Error tweeting: {e}")
+
+# Schedule the bot to run daily
+def job():
+    api = twitter_authenticate()
+    send_birthday_tweet(api)
+
+# Run daily at a specific time (e.g., 9:00 AM)
+schedule.every().day.at("09:00").do(job)
+
+print("Twitter bot is running. Press Ctrl+C to exit.")
+while True:
+    schedule.run_pending()
+    time.sleep(1)
