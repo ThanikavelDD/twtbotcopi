@@ -3,6 +3,10 @@ import requests
 import datetime
 import schedule
 import time
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Twitter API credentials
 API_KEY = "YOUR_API_KEY"
@@ -12,42 +16,52 @@ ACCESS_TOKEN_SECRET = "YOUR_ACCESS_TOKEN_SECRET"
 
 # Authenticate with Twitter API
 def twitter_authenticate():
-    auth = tweepy.OAuthHandler(API_KEY, API_SECRET_KEY)
-    auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-    return tweepy.API(auth)
+    try:
+        auth = tweepy.OAuthHandler(API_KEY, API_SECRET_KEY)
+        auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+        api = tweepy.API(auth)
+        logging.info("Authenticated with Twitter API successfully.")
+        return api
+    except Exception as e:
+        logging.error(f"Authentication failed: {e}")
+        raise
 
 # Fetch celebrity birthdays
 def fetch_celebrity_birthdays():
     today_date = datetime.datetime.now().strftime("%Y-%m-%d")
-    # Example API/website for fetching birthdays (replace with your source)
-    url = f"https://example.com/api/birthdays?date={today_date}"
+    url = f"https://example.com/api/birthdays?date={today_date}"  # Replace with your actual data source
     try:
-        response = requests.get(url)
-        response.raise_for_status()  # Check for HTTP request errors
+        logging.info("Fetching celebrity birthdays...")
+        response = requests.get(url, timeout=10)  # Timeout after 10 seconds
+        response.raise_for_status()  # Raise exception for HTTP errors
         data = response.json()  # Assuming the API returns JSON
-        return data.get("celebrities", [])  # Adjust to your API response format
-    except Exception as e:
-        print(f"Error fetching birthdays: {e}")
+        celebrities = data.get("celebrities", [])  # Adjust to match your API response
+        logging.info(f"Fetched {len(celebrities)} birthdays.")
+        return celebrities
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error fetching birthdays: {e}")
         return []
 
 # Compose and send the tweet
 def send_birthday_tweet(api):
     birthdays = fetch_celebrity_birthdays()
     if not birthdays:
-        print("No birthdays found for today.")
+        logging.warning("No birthdays found for today.")
         return
 
-    # Create a tweet
+    # Compose the tweet
     tweet = "🎉 Today's Top Celebrity Birthdays 🎂\n\n"
     for celeb in birthdays[:5]:  # Take the top 5 celebrities
         tweet += f"{celeb['name']} ({celeb['age']} years old)\n"
 
     tweet += "\n#CelebrityBirthdays #DailyUpdates"
+
+    # Post the tweet
     try:
         api.update_status(tweet)
-        print("Tweet posted successfully!")
+        logging.info("Tweet posted successfully.")
     except Exception as e:
-        print(f"Error tweeting: {e}")
+        logging.error(f"Error posting tweet: {e}")
 
 # Schedule the bot to run daily
 def job():
@@ -57,7 +71,7 @@ def job():
 # Run daily at a specific time (e.g., 9:00 AM)
 schedule.every().day.at("09:00").do(job)
 
-print("Twitter bot is running. Press Ctrl+C to exit.")
+logging.info("Twitter bot is running. Press Ctrl+C to exit.")
 while True:
     schedule.run_pending()
     time.sleep(1)
