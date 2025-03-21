@@ -1,5 +1,4 @@
 import tweepy
-import requests
 import datetime
 import logging
 
@@ -24,21 +23,19 @@ def twitter_authenticate():
         logging.error(f"Authentication failed: {e}")
         raise
 
-# Fetch celebrity birthdays
+# Fetch celebrity birthdays (placeholder data for testing)
 def fetch_celebrity_birthdays():
-    today_date = datetime.datetime.now().strftime("%Y-%m-%d")
-    url = f"https://example.com/api/birthdays?date={today_date}"  # Replace with your actual data source
-    try:
-        logging.info("Fetching celebrity birthdays...")
-        response = requests.get(url, timeout=10)  # Timeout after 10 seconds
-        response.raise_for_status()  # Raise exception for HTTP errors
-        data = response.json()  # Assuming the API returns JSON
-        celebrities = data.get("celebrities", [])  # Adjust to match your API response
-        logging.info(f"Fetched {len(celebrities)} birthdays.")
-        return celebrities
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error fetching birthdays: {e}")
-        return []
+    logging.info("Fetching placeholder celebrity birthdays...")
+    # Placeholder data
+    birthdays = [
+        {"name": "Celebrity A", "age": 30},
+        {"name": "Celebrity B", "age": 40},
+        {"name": "Celebrity C", "age": 25},
+        {"name": "Celebrity D", "age": 50},
+        {"name": "Celebrity E", "age": 35}
+    ]
+    logging.info(f"Fetched {len(birthdays)} birthdays from placeholder data.")
+    return birthdays
 
 # Compose and send the tweet
 def send_birthday_tweet(api):
