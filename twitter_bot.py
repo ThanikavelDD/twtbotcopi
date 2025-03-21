@@ -1,8 +1,6 @@
 import tweepy
 import requests
 import datetime
-import schedule
-import time
 import logging
 
 # Set up logging
@@ -63,15 +61,7 @@ def send_birthday_tweet(api):
     except Exception as e:
         logging.error(f"Error posting tweet: {e}")
 
-# Schedule the bot to run daily
-def job():
+# Execute the bot immediately
+if __name__ == "__main__":
     api = twitter_authenticate()
     send_birthday_tweet(api)
-
-# Run daily at a specific time (e.g., 9:00 AM)
-schedule.every().day.at("09:00").do(job)
-
-logging.info("Twitter bot is running. Press Ctrl+C to exit.")
-while True:
-    schedule.run_pending()
-    time.sleep(1)
